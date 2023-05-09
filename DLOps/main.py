@@ -12,12 +12,12 @@ label_rep = {
 }
 
 # Load the pre-trained model and tokenizer
+model_path = "trained_model.pth"
 model = transformers.BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       num_labels=len(label_rep),
                                                       output_attentions=False,
                                                       output_hidden_states=False)
 tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-model_path = "trained_model.pth"
 model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
 # Initialize the app
@@ -45,18 +45,21 @@ app.layout = html.Div([
 )
 def predict_personality(n_clicks, input_text):
     if n_clicks > 0:
-        
-        # Encode the input text using the tokenizer
-        encoded_input = tokenizer(input_text, return_tensors='pt')
+        if input_text.strip() == '':
+            return 'Please enter some text.'
+        try:
+            # Encode the input text using the tokenizer
+            encoded_input = tokenizer(input_text, return_tensors='pt')
 
-        # Pass the encoded input through the model
-        with torch.no_grad():
-            outputs = model(**encoded_input)
-        logits = outputs.logits
-        predicted_label = torch.argmax(logits, dim=1).item()
-        predicted_personality = list(label_rep.keys())[list(label_rep.values()).index(predicted_label)]
-
-        return f'Predicted personality type: {predicted_personality}'
+            # Pass the encoded input through the model
+            with torch.no_grad():
+                outputs = model(**encoded_input)
+            logits = outputs.logits
+            predicted_label = torch.argmax(logits, dim=1).item()
+            predicted_personality = list(label_rep.keys())[list(label_rep.values()).index(predicted_label)]
+            return f'Predicted personality type: {predicted_personality}'
+        except Exception as e:
+            return f'An error occurred: {str(e)}'
 
 if __name__ == '__main__':
     app.run_server(debug=True)
